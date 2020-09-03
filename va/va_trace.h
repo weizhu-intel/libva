@@ -200,9 +200,23 @@ void va_TraceEndPicture(
 );
 
 DLL_HIDDEN
+void va_TraceEndPictureExt(
+    VADisplay dpy,
+    VAContextID context,
+    int endpic_done
+);
+
+DLL_HIDDEN
 void va_TraceSyncSurface(
     VADisplay dpy,
     VASurfaceID render_target
+);
+
+DLL_HIDDEN
+void va_TraceSyncSurface2(
+    VADisplay dpy,
+    VASurfaceID surface,
+    uint64_t timeout_ns
 );
 
 DLL_HIDDEN
@@ -228,6 +242,12 @@ void va_TraceQuerySurfaceError(
 	void **error_info /*out*/
 );
 
+DLL_HIDDEN
+void va_TraceSyncBuffer(
+    VADisplay dpy,
+    VABufferID buf_id,
+    uint64_t timeout_ns
+);
 
 DLL_HIDDEN
 void va_TraceMaxNumDisplayAttributes (

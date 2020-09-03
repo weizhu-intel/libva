@@ -2170,7 +2170,8 @@ static inline void va_TraceIsRextProfile(
                trace_ctx->trace_profile == VAProfileHEVCMain444_12 || \
                trace_ctx->trace_profile == VAProfileHEVCSccMain    || \
                trace_ctx->trace_profile == VAProfileHEVCSccMain10  || \
-               trace_ctx->trace_profile == VAProfileHEVCSccMain444    \
+               trace_ctx->trace_profile == VAProfileHEVCSccMain444 || \
+               trace_ctx->trace_profile == VAProfileHEVCSccMain444_10 \
               );
 }
 
@@ -2185,7 +2186,8 @@ static inline void va_TraceIsSccProfile(
     *isScc = (\
               trace_ctx->trace_profile == VAProfileHEVCSccMain    || \
               trace_ctx->trace_profile == VAProfileHEVCSccMain10  || \
-              trace_ctx->trace_profile == VAProfileHEVCSccMain444    \
+              trace_ctx->trace_profile == VAProfileHEVCSccMain444 || \
+              trace_ctx->trace_profile == VAProfileHEVCSccMain444_10 \
              );
 }
 
@@ -2688,6 +2690,8 @@ static void va_TraceVAEncSequenceParameterBufferHEVC(
     va_TraceMsg(trace_ctx, "\tmin_spatial_segmentation_idc = %d\n", p->min_spatial_segmentation_idc);
     va_TraceMsg(trace_ctx, "\tmax_bytes_per_pic_denom = %d\n", p->max_bytes_per_pic_denom);
     va_TraceMsg(trace_ctx, "\tmax_bits_per_min_cu_denom = %d\n", p->max_bits_per_min_cu_denom);
+    va_TraceMsg(trace_ctx, "\tpalette_mode_enabled_flag = %d\n", p->scc_fields.bits.palette_mode_enabled_flag);
+    va_TraceMsg(trace_ctx, "\treserved = %d\n", p->scc_fields.bits.reserved);
 
     return;
 }
@@ -2768,6 +2772,10 @@ static void va_TraceVAEncPictureParameterBufferHEVC(
     va_TraceMsg(trace_ctx, "\tenable_gpu_weighted_prediction = %d\n", p->pic_fields.bits.enable_gpu_weighted_prediction);
     va_TraceMsg(trace_ctx, "\tno_output_of_prior_pics_flag = %d\n", p->pic_fields.bits.no_output_of_prior_pics_flag);
     va_TraceMsg(trace_ctx, "\treserved = %d\n", p->pic_fields.bits.reserved);
+    va_TraceMsg(trace_ctx, "\thierarchical_level_plus1 = %d\n", p->hierarchical_level_plus1);
+    va_TraceMsg(trace_ctx, "\tva_byte_reserved = %d\n", p->va_byte_reserved);
+    va_TraceMsg(trace_ctx, "\tpps_curr_pic_ref_enabled_flag = %d\n", p->scc_fields.bits.pps_curr_pic_ref_enabled_flag);
+    va_TraceMsg(trace_ctx, "\treserved = %d\n", p->scc_fields.bits.reserved);
 
     return;
 }
@@ -5362,6 +5370,7 @@ void va_TraceRenderPicture(
         case VAProfileHEVCSccMain:
         case VAProfileHEVCSccMain10:
         case VAProfileHEVCSccMain444:
+        case VAProfileHEVCSccMain444_10:
             for (j=0; j<num_elements; j++) {
                 va_TraceMsg(trace_ctx, "\telement[%d] = ", j);
 
@@ -5402,14 +5411,23 @@ void va_TraceEndPicture(
     int endpic_done
 )
 {
-    int encode, decode, jpeg;
     DPY2TRACECTX(dpy, context, VA_INVALID_ID);
 
     TRACE_FUNCNAME(idx);
 
     va_TraceMsg(trace_ctx, "\tcontext = 0x%08x\n", context);
     va_TraceMsg(trace_ctx, "\trender_targets = 0x%08x\n", trace_ctx->trace_rendertarget);
+    va_TraceMsg(trace_ctx, NULL);
+}
 
+void va_TraceEndPictureExt(
+    VADisplay dpy,
+    VAContextID context,
+    int endpic_done
+)
+{
+    int encode, decode, jpeg;
+    DPY2TRACECTX(dpy, context, VA_INVALID_ID);
     /* avoid to create so many empty files */
     encode = (trace_ctx->trace_entrypoint == VAEntrypointEncSlice);
     decode = (trace_ctx->trace_entrypoint == VAEntrypointVLD);
@@ -5425,9 +5443,7 @@ void va_TraceEndPicture(
         vaSyncSurface(dpy, trace_ctx->trace_rendertarget);
         va_TraceSurface(dpy, context);
     }
-
-    va_TraceMsg(trace_ctx, NULL);
-}
+ }
 
 
 void va_TraceSyncSurface(
@@ -5440,6 +5456,23 @@ void va_TraceSyncSurface(
     TRACE_FUNCNAME(idx);
 
     va_TraceMsg(trace_ctx, "\trender_target = 0x%08x\n", render_target);
+    va_TraceMsg(trace_ctx, NULL);
+
+    DPY2TRACE_VIRCTX_EXIT(pva_trace);
+}
+
+void va_TraceSyncSurface2(
+    VADisplay dpy,
+    VASurfaceID surface,
+    uint64_t timeout_ns
+)
+{
+    DPY2TRACE_VIRCTX(dpy);
+
+    TRACE_FUNCNAME(idx);
+
+    va_TraceMsg(trace_ctx, "\tsurface = 0x%08x\n", surface);
+    va_TraceMsg(trace_ctx, "\ttimeout_ns = %d\n", timeout_ns);
     va_TraceMsg(trace_ctx, NULL);
 
     DPY2TRACE_VIRCTX_EXIT(pva_trace);
@@ -5504,6 +5537,23 @@ void va_TraceQuerySurfaceError(
             p++; /* next error record */
         }
     }
+    va_TraceMsg(trace_ctx, NULL);
+
+    DPY2TRACE_VIRCTX_EXIT(pva_trace);
+}
+
+void va_TraceSyncBuffer(
+    VADisplay dpy,
+    VABufferID buf_id,
+    uint64_t timeout_ns
+)
+{
+    DPY2TRACE_VIRCTX(dpy);
+
+    TRACE_FUNCNAME(idx);
+
+    va_TraceMsg(trace_ctx, "\tbuf_id = 0x%08x\n", buf_id);
+    va_TraceMsg(trace_ctx, "\ttimeout_ns = %d\n", timeout_ns);
     va_TraceMsg(trace_ctx, NULL);
 
     DPY2TRACE_VIRCTX_EXIT(pva_trace);
@@ -5651,9 +5701,6 @@ void va_TracePutSurface (
 
 void va_TraceStatus(VADisplay dpy, const char * funcName, VAStatus status)
 {
-    if(status == VA_STATUS_SUCCESS)
-        return;
-
     DPY2TRACE_VIRCTX(dpy);
 
     va_TraceMsg(trace_ctx, "=========%s ret = %s, %s \n",funcName, vaStatusStr(status), vaErrorStr(status));
